@@ -47,8 +47,11 @@ v = [0.0 for _ in range(pred_time + 1)]
 v_x = [np.zeros(state_dim) for _ in range(pred_time + 1)]
 v_xx = [np.zeros((state_dim, state_dim)) for _ in range(pred_time + 1)]
 
+cnt = 0
 while True:
     env.render()
+    import pyglet
+    pyglet.image.get_buffer_manager().get_color_buffer().save('frame_%04d.png' % cnt)
     for _ in range(3):
         v[-1] = final_cost(x_seq[-1])
         v_x[-1] = lf_x(x_seq[-1])
@@ -73,7 +76,7 @@ while True:
             kk = -np.matmul(inv_q_uu, q_ux)
             dv = 0.5 * np.matmul(q_u, k)
             v[t] += dv
-            v_x[t] = q_x + np.matmul(q_ux.T, k).T
+            v_x[t] = q_x - np.matmul(np.matmul(q_u, inv_q_uu), q_ux)
             v_xx[t] = q_xx + np.matmul(q_ux.T, kk)
             k_seq.append(k)
             kk_seq.append(kk)
@@ -84,3 +87,4 @@ while True:
     print(u_seq.T)
     obs, _, _, _ = env.step(u_seq[0])
     x_seq[0] = obs.copy()
+    cnt += 1

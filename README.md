@@ -2,6 +2,10 @@
 
 Iterative LQR controller operating in OpenAI Gym environment.
 
+## Result
+
+![result](animation.gif)
+
 ## Requirements
 
 * gym
