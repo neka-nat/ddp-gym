@@ -8,5 +8,5 @@ Iterative LQR controller operating in OpenAI Gym environment.
 
 ## Requirements
 
-* gym
-* autograd
+* [gym](https://github.com/openai/gym)
+* [autograd](https://github.com/HIPS/autograd)
