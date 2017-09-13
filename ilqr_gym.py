@@ -50,8 +50,8 @@ v_xx = [np.zeros((state_dim, state_dim)) for _ in range(pred_time + 1)]
 cnt = 0
 while True:
     env.render()
-    import pyglet
-    pyglet.image.get_buffer_manager().get_color_buffer().save('frame_%04d.png' % cnt)
+    #import pyglet
+    #pyglet.image.get_buffer_manager().get_color_buffer().save('frame_%04d.png' % cnt)
     for _ in range(3):
         v[-1] = final_cost(x_seq[-1])
         v_x[-1] = lf_x(x_seq[-1])
