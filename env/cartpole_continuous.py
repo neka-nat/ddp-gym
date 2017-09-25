@@ -70,7 +70,7 @@ class CartPoleContinuousEnv(gym.Env):
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
         state = self.state
         self.state = self._state_eq(state, action) 
-        x, x_dot, theta, theta_dot = state
+        x, x_dot, theta, theta_dot = self.state
         done =  x < -self.x_threshold \
                 or x > self.x_threshold \
                 or theta < -self.theta_threshold_radians \
