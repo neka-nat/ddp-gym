@@ -3,33 +3,25 @@ import env
 from autograd import grad, jacobian
 import autograd.numpy as np
 
-env = gym.make('CartPoleContinuous-v0').env
-obs = env.reset()
-
-# x(i+1) = f(x(i), u)
-next_state = lambda x, u: env._state_eq(x, u)
-# l(x, u)
-running_cost = lambda x, u: 0.5 * np.sum(np.square(u))
-# lf(x)
-final_cost = lambda x: 0.5 * (np.square(1.0 - np.cos(x[2])) + np.square(x[1]) + np.square(x[3]))
-
 class ILqr:
     def __init__(self, next_state, running_cost, final_cost,
-                 state_dim, pred_time=50):
+                 umax, state_dim, pred_time=50):
         self.pred_time = pred_time
+        self.umax = umax
         self.v = [0.0 for _ in range(pred_time + 1)]
         self.v_x = [np.zeros(state_dim) for _ in range(pred_time + 1)]
         self.v_xx = [np.zeros((state_dim, state_dim)) for _ in range(pred_time + 1)]
+        self.f = next_state
         self.lf = final_cost
-        self.lf_x = grad(final_cost)
+        self.lf_x = grad(self.lf)
         self.lf_xx = jacobian(self.lf_x)
         self.l_x = grad(running_cost, 0)
         self.l_u = grad(running_cost, 1)
         self.l_xx = jacobian(self.l_x, 0)
         self.l_uu = jacobian(self.l_u, 1)
         self.l_ux = jacobian(self.l_u, 0)
-        self.f_x = jacobian(next_state, 0)
-        self.f_u = jacobian(next_state, 1)
+        self.f_x = jacobian(self.f, 0)
+        self.f_u = jacobian(self.f, 1)
         self.f_xx = jacobian(self.f_x, 0)
         self.f_uu = jacobian(self.f_u, 1)
         self.f_ux = jacobian(self.f_u, 0)
@@ -66,21 +58,26 @@ class ILqr:
         kk_seq.reverse()
         return k_seq, kk_seq
 
-    @staticmethod
-    def forward(x_seq, u_seq, k_seq, kk_seq):
+    def forward(self, x_seq, u_seq, k_seq, kk_seq):
         x_seq_hat = np.array(x_seq)
         u_seq_hat = np.array(u_seq)
         for t in range(len(u_seq)):
             control = k_seq[t] + np.matmul(kk_seq[t], (x_seq_hat[t] - x_seq[t]))
-            u_seq_hat[t] = np.clip(u_seq[t] + control, -env.max_force, env.max_force)
-            x_seq_hat[t + 1] = next_state(x_seq_hat[t], u_seq_hat[t])
+            u_seq_hat[t] = np.clip(u_seq[t] + control, -self.umax, self.umax)
+            x_seq_hat[t + 1] = self.f(x_seq_hat[t], u_seq_hat[t])
         return x_seq_hat, u_seq_hat
 
-ilqr = ILqr(next_state, running_cost, final_cost, env.observation_space.shape[0])
+env = gym.make('CartPoleContinuous-v0').env
+obs = env.reset()
+ilqr = ILqr(lambda x, u: env._state_eq(x, u),  # x(i+1) = f(x(i), u)
+            lambda x, u: 0.5 * np.sum(np.square(u)),  # l(x, u)
+            lambda x: 0.5 * (np.square(1.0 - np.cos(x[2])) + np.square(x[1]) + np.square(x[3])),  # lf(x)
+            env.max_force,
+            env.observation_space.shape[0])
 u_seq = [np.zeros(1) for _ in range(ilqr.pred_time)]
 x_seq = [obs.copy()]
 for t in range(ilqr.pred_time):
-    x_seq.append(next_state(x_seq[-1], u_seq[t]))
+    x_seq.append(env._state_eq(x_seq[-1], u_seq[t]))
 
 cnt = 0
 while True:
