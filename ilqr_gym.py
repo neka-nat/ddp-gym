@@ -81,7 +81,7 @@ for t in range(ilqr.pred_time):
 
 cnt = 0
 while True:
-    env.render()
+    env.render(mode="rgb_array")
     #import pyglet
     #pyglet.image.get_buffer_manager().get_color_buffer().save('frame_%04d.png' % cnt)
     for _ in range(3):
