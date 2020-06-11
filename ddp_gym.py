@@ -3,7 +3,7 @@ import env
 from autograd import grad, jacobian
 import autograd.numpy as np
 
-class ILqr:
+class DDP:
     def __init__(self, next_state, running_cost, final_cost,
                  umax, state_dim, pred_time=50):
         self.pred_time = pred_time
@@ -69,14 +69,14 @@ class ILqr:
 
 env = gym.make('CartPoleContinuous-v0').env
 obs = env.reset()
-ilqr = ILqr(lambda x, u: env._state_eq(x, u),  # x(i+1) = f(x(i), u)
-            lambda x, u: 0.5 * np.sum(np.square(u)),  # l(x, u)
-            lambda x: 0.5 * (np.square(1.0 - np.cos(x[2])) + np.square(x[1]) + np.square(x[3])),  # lf(x)
-            env.max_force,
-            env.observation_space.shape[0])
-u_seq = [np.zeros(1) for _ in range(ilqr.pred_time)]
+ddp = DDP(lambda x, u: env._state_eq(x, u),  # x(i+1) = f(x(i), u)
+          lambda x, u: 0.5 * np.sum(np.square(u)),  # l(x, u)
+          lambda x: 0.5 * (np.square(1.0 - np.cos(x[2])) + np.square(x[1]) + np.square(x[3])),  # lf(x)
+          env.max_force,
+          env.observation_space.shape[0])
+u_seq = [np.zeros(1) for _ in range(ddp.pred_time)]
 x_seq = [obs.copy()]
-for t in range(ilqr.pred_time):
+for t in range(ddp.pred_time):
     x_seq.append(env._state_eq(x_seq[-1], u_seq[t]))
 
 cnt = 0
@@ -85,8 +85,8 @@ while True:
     #import pyglet
     #pyglet.image.get_buffer_manager().get_color_buffer().save('frame_%04d.png' % cnt)
     for _ in range(3):
-        k_seq, kk_seq = ilqr.backward(x_seq, u_seq)
-        x_seq, u_seq = ilqr.forward(x_seq, u_seq, k_seq, kk_seq)
+        k_seq, kk_seq = ddp.backward(x_seq, u_seq)
+        x_seq, u_seq = ddp.forward(x_seq, u_seq, k_seq, kk_seq)
 
     print(u_seq.T)
     obs, _, _, _ = env.step(u_seq[0])

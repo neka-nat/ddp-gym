@@ -1,6 +1,6 @@
-# iLQR OpenAI Gym
+# Differential Dynamic Programming OpenAI Gym
 
-Iterative LQR controller operating in OpenAI Gym environment.
+Differential Dynamic Programming controller operating in OpenAI Gym environment.
 
 ## Result
 
